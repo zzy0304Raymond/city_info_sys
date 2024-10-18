@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>城市信息查询</title>
+    <div id="container"></div>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script
+        type="text/javascript" 
+        src="https://webapi.amap.com/maps?v=1.4.15&key=302fc8f01ea33caae9306e983b557fe6"
+    ></script> 
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">城市信息查询工具</h1>
+        
+        <div class="input-group mb-3">
+            <input type="text" id="city_name" class="form-control" placeholder="请输入城市名称">
+            <div class="input-group-append">
+                <button class="btn btn-primary" onclick="getCityInfo()">获取信息</button>
+            </div>
+        </div>
+    
+        <div id="result" class="mb-4"></div>
+        
+        <div id="map" style="height: 400px; width: 100%;"></div>
+    </div>
+    
+    <script>
+    function getCityInfo() {
+        const cityName = document.getElementById('city_name').value;
+        fetch('/get_city_info', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `city_name=${cityName}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                document.getElementById('result').innerHTML = `<p class="text-danger">${data.error}</p>`;
+                document.getElementById('map').innerHTML = ''; // 清空地图
+            } else {
+                displayCityInfo(data);
+                initMap(data.latitude, data.longitude);
+            }
+        });
+    }
+    
+    function displayCityInfo(data) {
+       let airQualityInfo = data.air_quality_index ? `<p>空气质量指数: ${data.air_quality_index}</p>` : '';
+       let weatherInfo = data.temperature ? `<p>温度: ${data.temperature} °C</p><p>湿度: ${data.humidity}%</p><p>天气描述: ${data.weather}</p>` : '';
+       let newsInfo = data.news ? `<h5>社会:</h5><ul>${data.news.map(article => `<li><a href="${article.url}" target="_blank">${article.title}</a></li>`).join('')}</ul>` : '';
+       let economicNewsInfo =
+            data.economic_news ?
+            `<h5>经济:</h5><ul>${data.economic_news.map(article => `<li><a href="${article.url}" target="_blank">${article.title}</a></li>`).join('')}</ul>` :
+            '';
+
+       let techNewsInfo =
+            data.tech_news ?
+            `<h5>科技:</h5><ul>${data.tech_news.map(article => `<li><a href="${article.url}" target="_blank">${article.title}</a></li>`).join('')}</ul>` :
+            '';
+       document.getElementById('result').innerHTML = `
+           <div class="card mb-3">
+               <div class="card-body">
+                   <h5 class="card-title">${data.name}</h5>
+                   <p class="card-text">国家: ${data.country}</p>
+                   <p class="card-text">人口: ${data.population}</p>
+                    ${airQualityInfo}
+                    ${newsInfo}
+                    ${economicNewsInfo}
+                    ${techNewsInfo}
+                   <a href="${data.wiki_url}" target="_blank" class="btn btn-link">维基百科链接</a>
+               </div>
+           </div>
+       `;
+    }
+    
+    function initMap(lat, lng) {
+       const map = new AMap.Map('map', {
+           center: [lng, lat], // 经纬度
+           zoom: 10 // 缩放级别
+       });
+       
+       const marker = new AMap.Marker({
+           position: new AMap.LngLat(lng, lat) // 标记位置
+       });
+       
+       marker.setMap(map); // 将标记添加到地图上
+    }
+    </script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+    </body>
+    
